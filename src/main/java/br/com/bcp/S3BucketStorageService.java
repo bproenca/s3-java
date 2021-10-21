@@ -109,13 +109,8 @@ public class S3BucketStorageService {
      * @return
      */
     public List<String> listFiles() {
-
-        ListObjectsRequest listObjectsRequest =
-                new ListObjectsRequest()
-                        .withBucketName(bucketName);
-
+        ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName);
         List<String> keys = new ArrayList<>();
-
         ObjectListing objects = amazonS3Client.listObjects(listObjectsRequest);
 
         while (true) {
@@ -123,12 +118,10 @@ public class S3BucketStorageService {
             if (objectSummaries.size() < 1) {
                 break;
             }
-
             for (S3ObjectSummary item : objectSummaries) {
                 if (!item.getKey().endsWith("/"))
                     keys.add(item.getKey());
             }
-
             objects = amazonS3Client.listNextBatchOfObjects(objects);
         }
 

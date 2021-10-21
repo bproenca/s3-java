@@ -17,9 +17,3 @@ application:
   bucket:
     name: modelo21
 
-logging:
-  level:
-    com:
-      amazonaws:
-        util:
-          EC2MetadataUtils: error

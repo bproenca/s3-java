@@ -52,6 +52,8 @@ public class S3BucketStorageController {
                 return MediaType.IMAGE_PNG;
             case "jpg":
                 return MediaType.IMAGE_JPEG;
+            case "pdf":
+                return MediaType.APPLICATION_PDF;
             default:
                 return MediaType.APPLICATION_OCTET_STREAM;
         }
