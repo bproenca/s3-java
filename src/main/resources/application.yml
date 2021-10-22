@@ -1,6 +1,6 @@
 #Application properties
 server:
-  port: 8081
+  port: ${APP_PORT:8080}
 
 #AWS properties
 cloud:

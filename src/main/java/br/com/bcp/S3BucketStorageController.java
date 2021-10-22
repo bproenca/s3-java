@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,13 +37,34 @@ public class S3BucketStorageController {
     }
 
     @GetMapping(value = "/download/{filename}")
-    public ResponseEntity<byte[]> downloadFile(@PathVariable String filename) {
+    public ResponseEntity<byte[]> download(@PathVariable String filename) {
         ByteArrayOutputStream downloadInputStream = service.downloadFile(filename);
 
         return ResponseEntity.ok()
                 .contentType(contentType(filename))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .body(downloadInputStream.toByteArray());
+    }
+
+    @GetMapping(value = "/downloadfile/**")
+    public ResponseEntity<byte[]> downloadFile(HttpServletRequest request) {
+        String requestURI = request.getRequestURI();
+        String filename = requestURI.replace("/downloadfile/", "");
+        try {
+            ByteArrayOutputStream downloadInputStream = service.downloadFile(filename);
+            
+            return ResponseEntity.ok()
+                    .contentType(contentType(filename))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .body(downloadInputStream.toByteArray());
+        } catch (AmazonS3Exception exp) {
+            if (exp != null && exp.getStatusCode() == 403) {
+                throw new AccessDenied(filename);
+            } else {
+                throw exp;                
+            }
+        }
+
     }
 
     @GetMapping(value = "/delete/{filename}")
