@@ -3,18 +3,10 @@ package br.com.bcp;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +15,27 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import io.minio.GetObjectArgs;
+import io.minio.ListObjectsArgs;
+import io.minio.MinioClient;
+import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import io.minio.Result;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
+import io.minio.messages.Item;
+
 @Service
 public class S3BucketStorageService {
 
     private Logger logger = LoggerFactory.getLogger(S3BucketStorageService.class);
 
     @Autowired
-    private AmazonS3 amazonS3Client;
+    private MinioClient minioClient;
 
     @Value("${application.bucket.name}")
     private String bucketName;
@@ -37,26 +43,26 @@ public class S3BucketStorageService {
     /**
      * Upload file into AWS S3
      *
-     * @param keyName
+     * @param fileName
      * @param file
      * @return String
      */
-    public String uploadFile(String keyName, MultipartFile file) {
+    public String uploadFile(String fileName, MultipartFile file) {
         try {
-            ObjectMetadata metadata = new ObjectMetadata();
-            metadata.setContentLength(file.getSize());
-            amazonS3Client.putObject(bucketName, keyName, file.getInputStream(), metadata);
-            return "File uploaded: " + keyName;
-        } catch (IOException ioe) {
-            logger.error("IOException: " + ioe.getMessage());
-        } catch (AmazonServiceException serviceException) {
-            logger.info("AmazonServiceException: "+ serviceException.getMessage());
-            throw serviceException;
-        } catch (AmazonClientException clientException) {
-            logger.info("AmazonClientException Message: " + clientException.getMessage());
-            throw clientException;
+            minioClient.putObject(
+                PutObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(fileName)
+                    .stream(file.getInputStream(), file.getSize(), -1)
+                    .build());
+        } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                | InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+                | IllegalArgumentException | IOException e) {
+            logger.error("MinioClient error: " + e.getMessage());
+            throw new RuntimeException(e);
         }
-        return "File not uploaded: " + keyName;
+
+        return "File not uploaded (minio): " + fileName;
     }
 
     /**
@@ -66,41 +72,45 @@ public class S3BucketStorageService {
      * @return
      */
     public String deleteFile(final String fileName) {
-        amazonS3Client.deleteObject(bucketName, fileName);
-        return "Deleted File: " + fileName;
+        // Remove object.
+        try {
+            minioClient.removeObject(
+                RemoveObjectArgs.builder().bucket(bucketName).object(fileName).build());
+            return "Deleted File: " + fileName;
+        } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                | InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+                | IllegalArgumentException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
     /**
      * Downloads file using amazon S3 client from S3 bucket
      *
-     * @param keyName
+     * @param fileName
      * @return ByteArrayOutputStream
      */
-    public ByteArrayOutputStream downloadFile(String keyName) {
+    public ByteArrayOutputStream downloadFile(String fileName) {
         try {
-            S3Object s3object = amazonS3Client.getObject(new GetObjectRequest(bucketName, keyName));
-
-            InputStream is = s3object.getObjectContent();
+            InputStream is = minioClient.getObject(
+                GetObjectArgs.builder()
+                    .bucket(bucketName)
+                    .object(fileName)
+                    .build());
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             int len;
-            byte[] buffer = new byte[4096];
+            byte[] buffer = new byte[16384];
             while ((len = is.read(buffer, 0, buffer.length)) != -1) {
                 outputStream.write(buffer, 0, len);
             }
-
+            is.close();
             return outputStream;
-        } catch (IOException ioException) {
-            logger.error("IOException: " + ioException.getMessage());
-        } catch (AmazonServiceException serviceException) {
-            logger.info("AmazonServiceException Message:    " + serviceException.getMessage());
-            throw serviceException;
-        } catch (AmazonClientException clientException) {
-            logger.info("AmazonClientException Message: " + clientException.getMessage());
-            throw clientException;
+        } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                | InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+                | IllegalArgumentException | IOException e) {
+            throw new RuntimeException(e);
         }
-
-        return null;
     }
 
     /**
@@ -109,22 +119,20 @@ public class S3BucketStorageService {
      * @return
      */
     public List<String> listFiles() {
-        ListObjectsRequest listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName);
+        // Lists objects information recursively.
+        Iterable<Result<Item>> results = minioClient.listObjects(
+            ListObjectsArgs.builder().bucket(bucketName).recursive(true).build());
+        
         List<String> keys = new ArrayList<>();
-        ObjectListing objects = amazonS3Client.listObjects(listObjectsRequest);
-
-        while (true) {
-            List<S3ObjectSummary> objectSummaries = objects.getObjectSummaries();
-            if (objectSummaries.size() < 1) {
-                break;
+        try {
+            for (Result<Item> result : results) {
+                keys.add(result.get().objectName());
             }
-            for (S3ObjectSummary item : objectSummaries) {
-                if (!item.getKey().endsWith("/"))
-                    keys.add(item.getKey());
-            }
-            objects = amazonS3Client.listNextBatchOfObjects(objects);
-        }
-
+        } catch (InvalidKeyException | ErrorResponseException | IllegalArgumentException | InsufficientDataException
+                | InternalException | InvalidResponseException | NoSuchAlgorithmException | ServerException
+                | XmlParserException | IOException e) {
+            throw new RuntimeException(e);
+        }    
         return keys;
     }
 
