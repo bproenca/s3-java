@@ -11,3 +11,14 @@ The following was discovered as part of building this project:
 * https://medium.com/oril/uploading-files-to-aws-s3-bucket-using-spring-boot-483fcb6f8646
 * https://aws.amazon.com/blogs/security/writing-iam-policies-grant-access-to-user-specific-folders-in-an-amazon-s3-bucket/
 * https://aws.amazon.com/premiumsupport/knowledge-center/s3-folder-user-access/
+
+# Run Project
+
+```
+mvn spring-boot:run \
+ -Dspring-boot.run.arguments=" \
+ --S3_ACCESS_KEY=<ACCESS_KEY> \
+ --S3_SECRET_KEY=<SECRET_KEY> \
+ --S3_REGION=<REGION default = sa-east-1> \
+ --S3_BUCKET=<BUCKET>"
+```
