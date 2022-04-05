@@ -6,7 +6,7 @@ server:
 cloud:
   aws:
     region:
-      static: sa-east-1
+      static: ${S3_REGION:sa-east-1}
     stack:
       auto: false
     credentials:
@@ -15,5 +15,5 @@ cloud:
 
 application:
   bucket:
-    name: modelo21
+    name: ${S3_BUCKET:modelo21}
 

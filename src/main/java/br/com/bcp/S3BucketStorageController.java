@@ -5,8 +5,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,12 +35,12 @@ public class S3BucketStorageController {
     }
 
     @GetMapping(value = "/download/{filename}")
-    public ResponseEntity<byte[]> download(@PathVariable String filename) {
-        ByteArrayOutputStream downloadInputStream = service.downloadFile(filename);
+    public ResponseEntity<byte[]> download(@PathVariable String fileName) {
+        ByteArrayOutputStream downloadInputStream = service.downloadFile(fileName);
 
         return ResponseEntity.ok()
-                .contentType(contentType(filename))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(contentType(fileName))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(downloadInputStream.toByteArray());
     }
 
@@ -50,26 +48,17 @@ public class S3BucketStorageController {
     public ResponseEntity<byte[]> downloadFile(HttpServletRequest request) {
         String requestURI = request.getRequestURI();
         String filename = requestURI.replace("/downloadfile/", "");
-        try {
-            ByteArrayOutputStream downloadInputStream = service.downloadFile(filename);
-            
-            return ResponseEntity.ok()
-                    .contentType(contentType(filename))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                    .body(downloadInputStream.toByteArray());
-        } catch (AmazonS3Exception exp) {
-            if (exp != null && exp.getStatusCode() == 403) {
-                throw new AccessDenied(filename);
-            } else {
-                throw exp;                
-            }
-        }
-
+        ByteArrayOutputStream downloadInputStream = service.downloadFile(filename);
+        
+        return ResponseEntity.ok()
+                .contentType(contentType(filename))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(downloadInputStream.toByteArray());
     }
 
     @GetMapping(value = "/delete/{filename}")
-    public ResponseEntity<String> delete(@PathVariable("filename") String filename) {
-        return new ResponseEntity<>(service.deleteFile(filename), HttpStatus.OK);
+    public ResponseEntity<String> delete(@PathVariable("filename") String fileName) {
+        return new ResponseEntity<>(service.deleteFile(fileName), HttpStatus.OK);
     }
 
     @DeleteMapping(value = "/deletefile/**")
@@ -79,8 +68,8 @@ public class S3BucketStorageController {
         return new ResponseEntity<>(service.deleteFile(filename), HttpStatus.OK);
     }
 
-    private MediaType contentType(String filename) {
-        String[] fileArrSplit = filename.split("\\.");
+    private MediaType contentType(String fileName) {
+        String[] fileArrSplit = fileName.split("\\.");
         String fileExtension = fileArrSplit[fileArrSplit.length - 1];
         switch (fileExtension) {
             case "txt":
