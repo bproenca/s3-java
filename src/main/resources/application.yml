@@ -2,18 +2,20 @@
 server:
   port: ${APP_PORT:8080}
 
-#AWS properties
 cloud:
-  aws:
-    region:
-      static: ${S3_REGION:sa-east-1}
-    stack:
-      auto: false
-    credentials:
-      accessKey: ${S3_ACCESS_KEY}
-      secretKey: ${S3_SECRET_KEY}
+  region:
+    static: ${S3_REGION:sa-saopaulo-1}
+  credentials:
+    accessKey: ${S3_ACCESS_KEY}
+    secretKey: ${S3_SECRET_KEY}
 
 application:
   bucket:
-    name: ${S3_BUCKET:modelo21}
+    name: ${S3_BUCKET:bucket-scs-dev}
 
+spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 128KB
+      max-request-size: 256KB

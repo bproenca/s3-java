@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,7 +28,7 @@ public class S3BucketStorageController {
         return new ResponseEntity<>(service.listFiles(), HttpStatus.OK);
     }
 
-    @PostMapping("/file/upload")
+    @PutMapping("/file/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("fileName") String fileName,
                                              @RequestParam("file") MultipartFile file) {
         return new ResponseEntity<>(service.uploadFile(fileName, file), HttpStatus.OK);

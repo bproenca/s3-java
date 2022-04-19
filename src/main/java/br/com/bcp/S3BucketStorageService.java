@@ -62,7 +62,7 @@ public class S3BucketStorageService {
             throw new RuntimeException(e);
         }
 
-        return "File not uploaded (minio): " + fileName;
+        return "File uploaded (minio): " + fileName;
     }
 
     /**
