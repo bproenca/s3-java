@@ -18,10 +18,13 @@ public class BucketConfig {
     @Value("${cloud.region.static}")
     private String region;
 
+    @Value("${cloud.endpoint}")
+    private String endpoint;
+
     @Bean
     public MinioClient minioClient() {
         return MinioClient.builder()
-            .endpoint("grtvagwwdldc.compat.objectstorage.sa-saopaulo-1.oraclecloud.com", 443, true)
+            .endpoint(endpoint, 443, true)
             .credentials(accessKey, secretKey)
             .region(region)
             .build();
