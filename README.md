@@ -19,6 +19,7 @@ mvn spring-boot:run \
  -Dspring-boot.run.arguments=" \
  --S3_ACCESS_KEY=<ACCESS_KEY> \
  --S3_SECRET_KEY=<SECRET_KEY> \
- --S3_REGION=<REGION default = sa-east-1> \
+ --S3_ENDPOINT=<ENDPOINT e.g. s3.amazonaws.com> \
+ --S3_REGION=<REGION e.g. sa-east-1> \
  --S3_BUCKET=<BUCKET>"
 ```
