@@ -6,7 +6,10 @@ import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,11 +19,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import io.minio.GetObjectArgs;
+import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.ListObjectsArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import io.minio.RemoveObjectArgs;
 import io.minio.Result;
+import io.minio.http.Method;
 import io.minio.errors.ErrorResponseException;
 import io.minio.errors.InsufficientDataException;
 import io.minio.errors.InternalException;
@@ -39,6 +44,52 @@ public class S3BucketStorageService {
 
     @Value("${application.bucket.name}")
     private String bucketName;
+
+    public String createPreAuthReqToGet() {
+        // Get presigned URL string to download 'my-objectname' in 'my-bucketname' and its life time
+        // is 2 hours. >> FUNCIONOU
+        String url = "Failed";
+        try {
+            url =
+               minioClient.getPresignedObjectUrl(
+                   GetPresignedObjectUrlArgs.builder()
+                       .method(Method.GET)
+                       .bucket(bucketName)
+                       .object("tb131.txt")
+                       .expiry(2, TimeUnit.HOURS)
+                       .build());
+        } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                | InvalidResponseException | NoSuchAlgorithmException | XmlParserException | ServerException
+                | IllegalArgumentException | IOException e) {
+            logger.error("Failed to Create Pre-Authenticated Request ", e);
+        }
+        return url;
+    }
+
+    public String createPreAuthReqToPut() {
+        // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
+        // with response-content-type as application/json and life time as one day.
+        Map<String, String> reqParams = new HashMap<String, String>();
+        reqParams.put("response-content-type", "application/json");
+        String url = "Failed";
+        try {
+            url =
+               minioClient.getPresignedObjectUrl(
+                   GetPresignedObjectUrlArgs.builder()
+                       .method(Method.PUT)
+                       .bucket(bucketName)
+                       .object("tb131.txt")
+                       .expiry(2, TimeUnit.HOURS)
+                       .extraQueryParams(reqParams)
+                       .build());
+            System.out.println(url);
+        } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                | InvalidResponseException | NoSuchAlgorithmException | XmlParserException | ServerException
+                | IllegalArgumentException | IOException e) {
+            logger.error("Failed to Create Pre-Authenticated Request ", e);
+        }
+        return url;
+    }
 
     /**
      * Upload file into AWS S3

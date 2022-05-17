@@ -28,6 +28,16 @@ public class S3BucketStorageController {
         return new ResponseEntity<>(service.listFiles(), HttpStatus.OK);
     }
 
+    @GetMapping("/createpreauthreq/get")
+    public ResponseEntity<String> createPreAuthReqToGet() {
+        return new ResponseEntity<>(service.createPreAuthReqToGet(), HttpStatus.OK);
+    }
+
+    @GetMapping("/createpreauthreq/put")
+    public ResponseEntity<String> createPreAuthReqToPut() {
+        return new ResponseEntity<>(service.createPreAuthReqToPut(), HttpStatus.OK);
+    }
+
     @PutMapping("/file/upload")
     public ResponseEntity<String> uploadFile(@RequestParam("fileName") String fileName,
                                              @RequestParam("file") MultipartFile file) {
