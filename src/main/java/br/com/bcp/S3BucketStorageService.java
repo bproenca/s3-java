@@ -45,7 +45,7 @@ public class S3BucketStorageService {
     @Value("${application.bucket.name}")
     private String bucketName;
 
-    public String createPreAuthReqToGet() {
+    public String createPreAuthReqToGet(String fileName) {
         // Get presigned URL string to download 'my-objectname' in 'my-bucketname' and its life time
         // is 2 hours. >> FUNCIONOU
         String url = "Failed";
@@ -55,7 +55,7 @@ public class S3BucketStorageService {
                    GetPresignedObjectUrlArgs.builder()
                        .method(Method.GET)
                        .bucket(bucketName)
-                       .object("tb131.txt")
+                       .object(fileName)
                        .expiry(2, TimeUnit.HOURS)
                        .build());
         } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
@@ -66,7 +66,7 @@ public class S3BucketStorageService {
         return url;
     }
 
-    public String createPreAuthReqToPut() {
+    public String createPreAuthReqToPut(String fileName) {
         // Get presigned URL string to upload 'my-objectname' in 'my-bucketname'
         // with response-content-type as application/json and life time as one day.
         Map<String, String> reqParams = new HashMap<String, String>();
@@ -78,7 +78,7 @@ public class S3BucketStorageService {
                    GetPresignedObjectUrlArgs.builder()
                        .method(Method.PUT)
                        .bucket(bucketName)
-                       .object("tb131.txt")
+                       .object(fileName)
                        .expiry(2, TimeUnit.HOURS)
                        .extraQueryParams(reqParams)
                        .build());
